@@ -18,16 +18,15 @@ st.title("MBG Menu Evaluator")
 if "menu_items" not in st.session_state:
     st.session_state.menu_items = []
 
-# data input
 with st.sidebar:
     st.header("Profil Penerima")
     age = st.number_input("Usia (tahun)", min_value=3, max_value=18, value=7)
     gender = st.selectbox("Gender", ["male", "female", "all"])
 
-# menu
+# menu mbg
 st.subheader("Pilih Menu")
 
-food_list = sorted(tkpi["nama_bahan"].unique())
+food_list = sorted(tkpi["Nama Bahan"].unique())
 food_name = st.selectbox("Nama Makanan", food_list)
 
 gram = st.number_input(
@@ -38,13 +37,13 @@ gram = st.number_input(
 )
 
 if st.button("Tambah ke Menu"):
-    row = tkpi[tkpi["nama_bahan"] == food_name]
+    row = tkpi[tkpi["Nama Bahan"] == food_name]
 
     if row.empty:
         st.error("Makanan tidak ditemukan di database")
         st.stop()
 
-    food_id = int(row.iloc[0]["id"])
+    food_id = int(row.iloc[0]["Id"])
 
     nutrition = calculate_nutrition(
         food_id=food_id,
@@ -62,6 +61,7 @@ if st.button("Reset Menu"):
 
 # evaluasi
 if st.session_state.menu_items:
+
     level, grade, default_gender = group_age(age, age_df)
     effective_gender = gender if gender != "all" else default_gender
 
