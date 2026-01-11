@@ -13,17 +13,16 @@ std_df = load_csv("data/standar_mbg.csv")
 
 st.title("MBG Menu Evaluator")
 
-# bagian sesi
 if "menu_items" not in st.session_state:
     st.session_state.menu_items = []
 
-# profil 
+# data input
 with st.sidebar:
     st.header("Profil Penerima")
     age = st.number_input("Usia (tahun)", min_value=3, max_value=18, value=7)
     gender = st.selectbox("Gender", ["male", "female", "all"])
 
-# menu
+# menu mbg
 st.subheader("Pilih Menu")
 
 food_list = sorted(tkpi["nama_bahan"].unique())
