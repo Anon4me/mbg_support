@@ -1,8 +1,8 @@
 import pandas as pd
 
-age_df = pd.read_csv("age_group.csv")
-edu_df = pd.read_csv("education_level.csv")
-std_df = pd.read_csv("standar_mbg.csv")
+age_df = pd.read_csv("data/age_group.csv")
+edu_df = pd.read_csv("data/education_level.csv")
+std_df = pd.read_csv("data/standar_mbg.csv")
 
 
 def resolve_age(age, age_df):
