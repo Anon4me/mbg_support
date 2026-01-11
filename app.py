@@ -7,7 +7,7 @@ from logic.mbg import resolve_age, resolve_group, get_standard, evaluate_mbg
 
 tkpi = load_csv("data/clean_data.csv")
 food_cat = load_csv("data/food_category.csv")
-age_df = load_csv("data/age.csv")
+age_df = load_csv("data/age_group.csv")
 edu_df = load_csv("data/education_level.csv")
 std_df = load_csv("data/standar_mbg.csv")
 
