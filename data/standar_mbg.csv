@@ -1,5 +1,5 @@
 ﻿group_id,min_energy_kcal,max_energy_kcal,min_protein_g,min_animal_protein_g,min_fiber_g,min_carbohydrate_g,req_protein,req_carb,req_veg,req_fruit
 SD_AWAL,450,600,18,8,12,75,True,True,True,True
 SD_TINGGI,500,700,22,10,14,90,True,True,True,True
-SMP,600,850,26,12,18,115,True,True,True,True
-SMA,700,900,28,14,22,130,True,True,True,True
+SMP,600,850,24,12,18,115,True,True,True,True
+SMA,700,900,26,14,22,130,True,True,True,True
