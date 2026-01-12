@@ -1,15 +1,16 @@
 import streamlit as st
+import pandas as pd
 import time
 import uuid
 
-# ===============================
+# ======================================================
 # PAGE CONFIG
-# ===============================
+# ======================================================
 st.set_page_config(page_title="AI Validasi Menu MBG", layout="wide")
 
-# ===============================
+# ======================================================
 # SESSION STATE
-# ===============================
+# ======================================================
 if "student_info" not in st.session_state:
     st.session_state.student_info = {"jenjang": "", "kelas": ""}
 
@@ -22,232 +23,191 @@ if "validated" not in st.session_state:
 if "result" not in st.session_state:
     st.session_state.result = None
 
-# ===============================
-# HARD-CODED CLASS OPTIONS
-# ===============================
-KELAS_OPTIONS = {
-    "SD": [
-        "SD Kelas I", "SD Kelas II", "SD Kelas III",
-        "SD Kelas IV", "SD Kelas V", "SD Kelas VI"
-    ],
-    "SMP": [
-        "SMP Kelas VII", "SMP Kelas VIII", "SMP Kelas IX"
-    ],
-    "SMA": [
-        "SMA Kelas X", "SMA Kelas XI", "SMA Kelas XII"
-    ]
-}
-
-# ===============================
+# ======================================================
 # HARD-CODED MBG STANDARDS
-# ===============================
-MBG_STANDARDS = {
-    "SD_AWAL": {
-        "min_energy": 450,
-        "max_energy": 600,
-        "min_protein": 18,
-        "min_fiber": 12,
-        "min_carb": 150,
-        "req_protein": True,
-        "req_carb": True,
-        "req_veg": True,
-        "req_fruit": True,
-    },
-    "SD_TINGGI": {
-        "min_energy": 500,
-        "max_energy": 700,
-        "min_protein": 22,
-        "min_fiber": 14,
-        "min_carb": 180,
-        "req_protein": True,
-        "req_carb": True,
-        "req_veg": True,
-        "req_fruit": True,
-    },
-    "SMP": {
-        "min_energy": 600,
-        "max_energy": 850,
-        "min_protein": 26,
-        "min_fiber": 18,
-        "min_carb": 200,
-        "req_protein": True,
-        "req_carb": True,
-        "req_veg": True,
-        "req_fruit": True,
-    },
-    "SMA": {
-        "min_energy": 700,
-        "max_energy": 900,
-        "min_protein": 28,
-        "min_fiber": 22,
-        "min_carb": 240,
-        "req_protein": True,
-        "req_carb": True,
-        "req_veg": True,
-        "req_fruit": True,
-    },
+# ======================================================
+MBG = {
+    "SD_AWAL":  {"min_e": 450, "max_e": 600, "min_p": 18, "min_pa": 8,  "min_f": 12, "min_c": 150},
+    "SD_TINGGI":{"min_e": 500, "max_e": 700, "min_p": 22, "min_pa": 10, "min_f": 14, "min_c": 180},
+    "SMP":      {"min_e": 600, "max_e": 850, "min_p": 26, "min_pa": 12, "min_f": 18, "min_c": 200},
+    "SMA":      {"min_e": 700, "max_e": 900, "min_p": 28, "min_pa": 14, "min_f": 22, "min_c": 240},
 }
 
-# ===============================
-# MENU CATEGORIES
-# ===============================
-MENU_CATEGORIES = {
-    "Makanan Pokok": [
-        "Nasi Putih", "Nasi Merah", "Nasi Jagung",
-        "Kentang Rebus", "Ubi Rebus", "Mie"
-    ],
-    "Lauk Pauk": [
-        "Ayam Goreng", "Ayam Bakar", "Ikan Goreng",
-        "Ikan Bakar", "Tempe Goreng", "Tahu Goreng",
-        "Telur Rebus", "Telur Dadar"
-    ],
-    "Sayuran": [
-        "Sayur Asem", "Sayur Sop", "Tumis Kangkung",
-        "Capcay", "Sayur Lodeh"
-    ],
-    "Buah": [
-        "Pisang", "Apel", "Jeruk", "Pepaya", "Semangka"
-    ]
+# ======================================================
+# OPTIONS
+# ======================================================
+KELAS_OPTIONS = {
+    "SD": ["SD Kelas I","SD Kelas II","SD Kelas III","SD Kelas IV","SD Kelas V","SD Kelas VI"],
+    "SMP": ["SMP Kelas VII","SMP Kelas VIII","SMP Kelas IX"],
+    "SMA": ["SMA Kelas X","SMA Kelas XI","SMA Kelas XII"],
 }
 
-# ===============================
-# GROUP RESOLUTION (HARDCODED)
-# ===============================
-def resolve_group_id(jenjang, kelas):
+MENU_OPTIONS = [
+    "Nasi Putih","Nasi Merah","Nasi Jagung","Kentang Rebus","Ubi Rebus","Mie",
+    "Ayam Goreng","Ayam Bakar","Ikan Goreng","Ikan Bakar","Tempe Goreng",
+    "Tahu Goreng","Telur Rebus","Telur Dadar",
+    "Sayur Asem","Sayur Sop","Tumis Kangkung","Capcay","Sayur Lodeh",
+    "Pisang","Apel","Jeruk","Pepaya","Semangka"
+]
+
+# ======================================================
+# DATA LOADER
+# ======================================================
+@st.cache_data
+def load_data():
+    clean = pd.read_csv("data/clean_data.csv")
+    food_cat = pd.read_csv("data/food_category.csv")
+    protein_cat = pd.read_csv("data/category_protein.csv")
+
+    clean.columns = clean.columns.str.lower()
+    food_cat.columns = food_cat.columns.str.lower()
+    protein_cat.columns = protein_cat.columns.str.lower()
+
+    clean["nama"] = clean["nama"].str.lower().str.strip()
+    food_cat["nama bahan"] = food_cat["nama bahan"].str.lower().str.strip()
+    protein_cat["nama"] = protein_cat["nama"].str.lower().str.strip()
+
+    return clean, food_cat, protein_cat
+
+# ======================================================
+# GROUP RESOLUTION
+# ======================================================
+def resolve_group(jenjang, kelas):
     if jenjang == "SD":
-        if "I" in kelas or "II" in kelas or "III" in kelas:
-            return "SD_AWAL"
-        return "SD_TINGGI"
-    return jenjang  # SMP / SMA
+        return "SD_AWAL" if any(x in kelas for x in ["I","II","III"]) else "SD_TINGGI"
+    return jenjang
 
-# ===============================
-# UI HEADER
-# ===============================
+# ======================================================
+# NUTRITION CALCULATION
+# ======================================================
+def hitung_gizi(menu, clean_df):
+    total = {"energi":0,"protein":0,"karbo":0,"serat":0}
+
+    for m in menu:
+        nama = m["name"].lower()
+        porsi = m["portion"] / 100
+
+        row = clean_df[clean_df["nama"] == nama]
+        if row.empty:
+            st.warning(f"Data gizi tidak ditemukan: {m['name']}")
+            continue
+
+        r = row.iloc[0]
+        total["energi"] += r["energi_kkal"] * porsi
+        total["protein"] += r["protein_g"] * porsi
+        total["karbo"] += r["karbo_g"] * porsi
+        total["serat"] += r["serat_g"] * porsi
+
+    return total
+
+def cek_kategori(menu, food_cat_df, target):
+    foods = [m["name"].lower() for m in menu]
+    return not food_cat_df[
+        (food_cat_df["nama bahan"].isin(foods)) &
+        (food_cat_df["kategori"] == target)
+    ].empty
+
+def hitung_protein_hewani(menu, clean_df, protein_df):
+    total = 0
+    for m in menu:
+        nama = m["name"].lower()
+        porsi = m["portion"] / 100
+
+        if protein_df[
+            (protein_df["nama"] == nama) &
+            (protein_df["is_animal"] == True)
+        ].empty:
+            continue
+
+        nut = clean_df[clean_df["nama"] == nama]
+        if nut.empty:
+            continue
+
+        total += nut.iloc[0]["protein_g"] * porsi
+
+    return total
+
+# ======================================================
+# UI
+# ======================================================
 st.title("🍽️ AI Validasi Menu MBG")
-st.caption("Validasi otomatis menu sesuai standar gizi MBG")
+st.caption("Perhitungan gizi real berbasis data")
 
-# ===============================
-# INFORMASI SISWA
-# ===============================
 st.subheader("👤 Informasi Siswa")
+c1, c2 = st.columns(2)
 
-info = st.session_state.student_info
-col1, col2 = st.columns(2)
+with c1:
+    jenjang = st.selectbox("Jenjang", ["","SD","SMP","SMA"])
+with c2:
+    kelas = st.selectbox("Kelas", [""] + KELAS_OPTIONS.get(jenjang, []), disabled=not jenjang)
 
-with col1:
-    jenjang = st.selectbox(
-        "Jenjang Pendidikan",
-        ["", "SD", "SMP", "SMA"]
+st.subheader("🍴 Pilihan Menu")
+selected = st.multiselect("Pilih Makanan", MENU_OPTIONS)
+
+for s in selected:
+    if not any(m["name"] == s for m in st.session_state.menu_items):
+        st.session_state.menu_items.append({
+            "id": str(uuid.uuid4()),
+            "name": s,
+            "portion": 100
+        })
+
+st.subheader("⚖️ Porsi")
+for m in st.session_state.menu_items:
+    m["portion"] = st.number_input(
+        m["name"], 0, 500, m["portion"], step=10, key=m["id"]
     )
 
-if jenjang != info["jenjang"]:
-    info["jenjang"] = jenjang
-    info["kelas"] = ""
-
-with col2:
-    kelas = st.selectbox(
-        "Kelas",
-        ["Pilih Jenjang Terlebih Dahulu"]
-        if not info["jenjang"]
-        else [""] + KELAS_OPTIONS[info["jenjang"]],
-        disabled=not info["jenjang"]
-    )
-
-    if kelas and kelas != "Pilih Jenjang Terlebih Dahulu":
-        info["kelas"] = kelas
-
-# ===============================
-# MENU SELECTION
-# ===============================
-st.subheader("🍴 Pilihan Menu Makanan")
-
-for category, options in MENU_CATEGORIES.items():
-    with st.expander(category):
-        selected = st.multiselect(category, options)
-
-        for item in selected:
-            if not any(m["name"] == item for m in st.session_state.menu_items):
-                st.session_state.menu_items.append({
-                    "id": str(uuid.uuid4()),
-                    "category": category,
-                    "name": item,
-                    "portion": 100
-                })
-
-# ===============================
-# PORTION CONTROL
-# ===============================
-st.subheader("⚖️ Kontrol Porsi")
-
-for item in st.session_state.menu_items:
-    c1, c2 = st.columns([4, 1])
-    c1.markdown(f"**{item['name']}**")
-    item["portion"] = c2.number_input(
-        "gram",
-        min_value=0,
-        step=10,
-        value=item["portion"],
-        key=item["id"]
-    )
-
-# ===============================
+# ======================================================
 # VALIDATION
-# ===============================
-st.subheader("✨ AI Validasi Menu")
-
-can_validate = info["jenjang"] and info["kelas"] and st.session_state.menu_items
-
-if st.button("Validasi Menu", disabled=not can_validate):
-    with st.spinner("Memproses menu..."):
+# ======================================================
+if st.button("Validasi Menu"):
+    with st.spinner("Menghitung..."):
         time.sleep(1)
 
-    energi = sum(i["portion"] * 1.2 for i in st.session_state.menu_items)
-    protein = sum(i["portion"] * 0.08 for i in st.session_state.menu_items)
-    karbo = sum(i["portion"] * 0.2 for i in st.session_state.menu_items)
-    serat = sum(i["portion"] * 0.03 for i in st.session_state.menu_items)
+    clean_df, food_cat_df, protein_df = load_data()
 
-    has_protein = any(i["category"] == "Lauk Pauk" for i in st.session_state.menu_items)
-    has_carb = any(i["category"] == "Makanan Pokok" for i in st.session_state.menu_items)
-    has_veg = any(i["category"] == "Sayuran" for i in st.session_state.menu_items)
-    has_fruit = any(i["category"] == "Buah" for i in st.session_state.menu_items)
+    gizi = hitung_gizi(st.session_state.menu_items, clean_df)
+    prot_hewani = hitung_protein_hewani(
+        st.session_state.menu_items, clean_df, protein_df
+    )
 
-    group_id = resolve_group_id(info["jenjang"], info["kelas"])
-    std = MBG_STANDARDS[group_id]
+    group = resolve_group(jenjang, kelas)
+    std = MBG[group]
 
     checks = [
-        std["min_energy"] <= energi <= std["max_energy"],
-        protein >= std["min_protein"],
-        karbo >= std["min_carb"],
-        serat >= std["min_fiber"],
-        has_protein,
-        has_carb,
-        has_veg,
-        has_fruit
+        std["min_e"] <= gizi["energi"] <= std["max_e"],
+        gizi["protein"] >= std["min_p"],
+        prot_hewani >= std["min_pa"],
+        gizi["karbo"] >= std["min_c"],
+        gizi["serat"] >= std["min_f"],
+        cek_kategori(st.session_state.menu_items, food_cat_df, "pokok"),
+        cek_kategori(st.session_state.menu_items, food_cat_df, "lauk"),
+        cek_kategori(st.session_state.menu_items, food_cat_df, "sayur"),
+        cek_kategori(st.session_state.menu_items, food_cat_df, "buah"),
     ]
 
     st.session_state.result = {
-        "energi": int(energi),
-        "protein": int(protein),
-        "karbo": int(karbo),
-        "serat": int(serat),
+        "energi": int(gizi["energi"]),
+        "protein": int(gizi["protein"]),
+        "karbo": int(gizi["karbo"]),
+        "serat": int(gizi["serat"]),
         "status": "sesuai" if all(checks) else "tidak sesuai"
     }
-
     st.session_state.validated = True
 
-# ===============================
+# ======================================================
 # OUTPUT
-# ===============================
+# ======================================================
 if st.session_state.validated:
     r = st.session_state.result
-
-    c1, c2, c3, c4 = st.columns(4)
+    c1,c2,c3,c4 = st.columns(4)
     c1.metric("Energi", f"{r['energi']} kkal")
     c2.metric("Protein", f"{r['protein']} g")
     c3.metric("Karbohidrat", f"{r['karbo']} g")
     c4.metric("Serat", f"{r['serat']} g")
 
     if r["status"] == "sesuai":
-        st.success("✅ Menu memenuhi standar gizi MBG")
+        st.success("✅ Menu MEMENUHI standar MBG")
     else:
-        st.error("❌ Menu tidak memenuhi standar gizi MBG")
+        st.error("❌ Menu TIDAK memenuhi standar MBG")
