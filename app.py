@@ -157,10 +157,10 @@ if st.button("Validasi Menu"):
             continue
 
         g = item["portion"] / 100
-        energi += row["energi_kkal"].values[0] * g
-        protein += row["protein_g"].values[0] * g
-        karbo += row["karbo_g"].values[0] * g
-        serat += row["serat_g"].values[0] * g
+        energi += float(row["energi_kkal"].values[0]) * g
+        protein += float(row["protein_g"].values[0]) * g
+        karbo += float(row["karbo_g"].values[0]) * g
+        serat += float(row["serat_g"].values[0]) * g
 
         p = protein_df[protein_df["nama"] == item["name"].lower()]
         if not p.empty and p["is_animal"].values[0]:
