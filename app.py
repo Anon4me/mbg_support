@@ -6,10 +6,10 @@ from collections import defaultdict
 st.set_page_config(page_title="AI Validasi Menu MBG", layout="wide")
 
 MBG_STANDARD = {
-    "SD_AWAL":  {"min_energy": 450, "max_energy": 600, "min_protein": 18, "min_animal": 8,  "min_fiber": 12, "min_carb": 75},
-    "SD_TINGGI":{"min_energy": 500, "max_energy": 700, "min_protein": 22, "min_animal": 10, "min_fiber": 14, "min_carb": 90},
-    "SMP":      {"min_energy": 600, "max_energy": 850, "min_protein": 24, "min_animal": 12, "min_fiber": 18, "min_carb": 115},
-    "SMA":      {"min_energy": 700, "max_energy": 900, "min_protein": 26, "min_animal": 14, "min_fiber": 22, "min_carb": 130},
+    "SD_AWAL":  {"min_energy": 450, "max_energy": 600, "min_protein": 18, "min_animal": 8,  "min_fiber": 4, "min_carb": 75},
+    "SD_TINGGI":{"min_energy": 500, "max_energy": 700, "min_protein": 22, "min_animal": 10, "min_fiber": 6, "min_carb": 90},
+    "SMP":      {"min_energy": 600, "max_energy": 850, "min_protein": 24, "min_animal": 12, "min_fiber": 8, "min_carb": 115},
+    "SMA":      {"min_energy": 700, "max_energy": 900, "min_protein": 26, "min_animal": 14, "min_fiber": 8, "min_carb": 130},
 }
 
 KELAS_MAP = {
