@@ -187,63 +187,54 @@ if st.button("Validasi Menu"):
     }
 
 
-# output result
+# hasil output
 if st.session_state.result:
-    result = st.session_state.result
+    r = st.session_state.result
 
     st.subheader("📊 Hasil")
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Energi", f"{result['energi']} kkal")
-    c2.metric("Protein", f"{result['protein']} g")
-    c3.metric("Protein Hewani", f"{result['animal']} g")
-    c4.metric("Karbohidrat", f"{result['karbo']} g")
-    c5.metric("Serat", f"{result['serat']} g")
+    c1.metric("Energi", f"{r['energi']} kkal")
+    c2.metric("Protein", f"{r['protein']} g")
+    c3.metric("Protein Hewani", f"{r['animal']} g")
+    c4.metric("Karbohidrat", f"{r['karbo']} g")
+    c5.metric("Serat", f"{r['serat']} g")
 
-    if result["status"]:
+    if r["status"]:
         st.success("✅ MENU SESUAI STANDAR MBG")
     else:
         st.error("❌ MENU TIDAK SESUAI STANDAR MBG")
 
-# rekomendasi penyesuaian
+# rekomendasi 
     st.divider()
     st.subheader("🧠 Rekomendasi Penyesuaian Menu")
 
     rekomendasi = []
 
-    # Energi
-    if energi > std["max_energy"]:
+    if r["energi"] > std["max_energy"]:
         rekomendasi.append("Kurangi porsi makanan pokok atau lauk tinggi lemak")
-    elif energi < std["min_energy"]:
+    elif r["energi"] < std["min_energy"]:
         rekomendasi.append("Tambahkan porsi makanan pokok")
 
-    # Karbohidrat
-    if karbo < std["min_carb"]:
-        if energi < std["max_energy"]:
-            rekomendasi.append("Tambahkan nasi / sumber karbohidrat")
-        else:
-            rekomendasi.append(
-                "Tambahkan karbohidrat rendah energi (kentang rebus / jagung)"
-            )
+    if r["karbo"] < std["min_carb"]:
+        rekomendasi.append("Tambahkan sumber karbohidrat (nasi / kentang / jagung)")
 
-    # Protein total
-    if protein < std["min_protein"]:
-        rekomendasi.append("Tambahkan lauk berprotein (ayam, ikan, telur)")
+    if r["protein"] < std["min_protein"]:
+        rekomendasi.append("Tambahkan lauk berprotein (ayam, ikan, telur, tempe)")
 
-    # Protein hewani
-    if animal_protein < std["min_animal"]:
+    if r["animal"] < std["min_animal"]:
         rekomendasi.append("Tambahkan lauk protein hewani")
 
-    # Serat
-    if serat < std["min_fiber"]:
+    if r["serat"] < std["min_fiber"]:
         rekomendasi.append("Tambahkan sayuran hijau atau buah")
 
-
     if rekomendasi:
-        st.subheader("🧠 Rekomendasi Penyesuaian Menu")
-        for r in rekomendasi:
-            st.info(r)
+        for rec in rekomendasi:
+            st.info(rec)
+    else:
+        st.success("Menu sudah optimal, tidak perlu penyesuaian ✅")
 
+# tabel gambaran nutrisi
     st.divider()
     st.subheader("📋 Kebutuhan Nutrisi untuk Menu Valid")
 
@@ -254,58 +245,48 @@ if st.session_state.result:
             return "⚠️ Berlebih"
         return "✅ Cukup"
 
-    data_table = [
+    df_kebutuhan = pd.DataFrame([
         {
             "Nutrisi": "Energi (kkal)",
             "Standar MBG": f"{std['min_energy']} – {std['max_energy']}",
-            "Menu Saat Ini": result["energi"],
+            "Menu Saat Ini": r["energi"],
             "Selisih": (
-                result["energi"] - std["min_energy"]
-                if result["energi"] < std["min_energy"]
-                else result["energi"] - std["max_energy"]
-                if result["energi"] > std["max_energy"]
+                r["energi"] - std["min_energy"]
+                if r["energi"] < std["min_energy"]
+                else r["energi"] - std["max_energy"]
+                if r["energi"] > std["max_energy"]
                 else 0
             ),
-            "Status": status_label(
-                result["energi"],
-                std["min_energy"],
-                std["max_energy"]
-            ),
+            "Status": status_label(r["energi"], std["min_energy"], std["max_energy"]),
         },
         {
             "Nutrisi": "Protein (g)",
             "Standar MBG": f"≥ {std['min_protein']}",
-            "Menu Saat Ini": result["protein"],
-            "Selisih": result["protein"] - std["min_protein"],
-            "Status": status_label(result["protein"], std["min_protein"]),
+            "Menu Saat Ini": r["protein"],
+            "Selisih": r["protein"] - std["min_protein"],
+            "Status": status_label(r["protein"], std["min_protein"]),
         },
         {
             "Nutrisi": "Protein Hewani (g)",
             "Standar MBG": f"≥ {std['min_animal']}",
-            "Menu Saat Ini": result["animal"],
-            "Selisih": result["animal"] - std["min_animal"],
-            "Status": status_label(result["animal"], std["min_animal"]),
+            "Menu Saat Ini": r["animal"],
+            "Selisih": r["animal"] - std["min_animal"],
+            "Status": status_label(r["animal"], std["min_animal"]),
         },
         {
             "Nutrisi": "Karbohidrat (g)",
             "Standar MBG": f"≥ {std['min_carb']}",
-            "Menu Saat Ini": result["karbo"],
-            "Selisih": result["karbo"] - std["min_carb"],
-            "Status": status_label(result["karbo"], std["min_carb"]),
+            "Menu Saat Ini": r["karbo"],
+            "Selisih": r["karbo"] - std["min_carb"],
+            "Status": status_label(r["karbo"], std["min_carb"]),
         },
         {
             "Nutrisi": "Serat (g)",
             "Standar MBG": f"≥ {std['min_fiber']}",
-            "Menu Saat Ini": result["serat"],
-            "Selisih": result["serat"] - std["min_fiber"],
-            "Status": status_label(result["serat"], std["min_fiber"]),
+            "Menu Saat Ini": r["serat"],
+            "Selisih": r["serat"] - std["min_fiber"],
+            "Status": status_label(r["serat"], std["min_fiber"]),
         },
-    ]
+    ])
 
-    df_kebutuhan = pd.DataFrame(data_table)
-
-    st.dataframe(
-        df_kebutuhan,
-        use_container_width=True,
-        hide_index=True
-    )
+    st.dataframe(df_kebutuhan, use_container_width=True, hide_index=True)
