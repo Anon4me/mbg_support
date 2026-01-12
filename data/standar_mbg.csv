@@ -1,5 +1,4 @@
 ﻿group_id;min_energy_kcal;max_energy_kcal;min_protein_g;min_animal_protein_g;min_fiber_g;min_carbohydrate_g;req_protein;req_carb;req_veg;req_fruit
-TK;400;550;15;6;10;130;TRUE;TRUE;TRUE;TRUE
 SD_AWAL;450;600;18;8;12;150;TRUE;TRUE;TRUE;TRUE
 SD_TINGGI;500;700;22;10;14;180;TRUE;TRUE;TRUE;TRUE
 SMP_F;600;850;26;12;18;200;TRUE;TRUE;TRUE;TRUE

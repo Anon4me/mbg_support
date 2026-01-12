@@ -1,5 +1,4 @@
 group_id,group_name,age_min,age_max,gender
-TK,Taman Kanak-kanak,4,6,all
 SD_AWAL,SD Kelas Awal,6,8,all
 SD_TINGGI,SD Kelas Tinggi,9,12,all
 SMP_F,SMP Perempuan,12,15,female

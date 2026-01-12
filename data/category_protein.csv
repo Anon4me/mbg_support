@@ -118,7 +118,7 @@ GR063,"Rajungan, segar",HEWANI,TRUE
 GP065,"Gulai ikan, masakan",HEWANI,TRUE
 GP005,"Ikan bandeng presto, masakan",HEWANI,TRUE
 GP008,"Ikan cakalang asap, mentah",HEWANI,TRUE
-GP020,Ikan mujahir goreng,HEWANI,TRUE
+GP020,"Ikan mujahir goreng",HEWANI,TRUE
 GP009,"Ikan cakalang asin, mentah",HEWANI,TRUE
 CP070,Tempe bongkrek,NABATI,FALSE
 CP071,Tempe gembus P3G,NABATI,FALSE
@@ -133,8 +133,8 @@ CP079,Tempe lamtoro,NABATI,FALSE
 CP080,Tempe lamtoro var. gung dengan kulit,NABATI,FALSE
 CP081,Tempe lamtoro var. gung tanpa kulit,NABATI,FALSE
 CP082,Tempe pasar,NABATI,FALSE
-CP083,Tempe pasar goreng,NABATI,FALSE
-CP062,Tahu goreng,NABATI,FALSE
+CP083,"Tempe pasar goreng",NABATI,FALSE
+CP062,"Tahu goreng",NABATI,FALSE
 CR001,"Kacang arab, kering",NABATI,FALSE
 CP031,Kacang atom,NABATI,FALSE
 CR002,"Kacang babi, kering",NABATI,FALSE
