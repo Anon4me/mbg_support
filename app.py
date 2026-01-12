@@ -93,7 +93,7 @@ def load():
     )
 
     data["food_category"] = pd.read_csv(
-        "data/food_category.csv"
+        "data/food_category_all.csv"
     )
 
     return data
