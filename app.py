@@ -5,9 +5,6 @@ from collections import defaultdict
 
 st.set_page_config(page_title="AI Validasi Menu MBG", layout="wide")
 
-# =========================
-# STANDAR MBG
-# =========================
 MBG_STANDARD = {
     "SD_AWAL":  {"min_energy": 450, "max_energy": 600, "min_protein": 18, "min_animal": 8,  "min_fiber": 12, "min_carb": 150},
     "SD_TINGGI":{"min_energy": 500, "max_energy": 700, "min_protein": 22, "min_animal": 10, "min_fiber": 14, "min_carb": 180},
@@ -30,29 +27,20 @@ KELAS_MAP = {
     "SMA Kelas XII": "SMA",
 }
 
-# =========================
-# SESSION STATE
-# =========================
 if "menu_items" not in st.session_state:
     st.session_state.menu_items = []
 
 if "result" not in st.session_state:
     st.session_state.result = None
 
-if "totals" not in st.session_state:
-    st.session_state.totals = None
-
-# =========================
-# LOAD DATA
-# =========================
 @st.cache_data
 def load_data():
-    clean = pd.read_csv("data/clean_data.csv")
+    clean = pd.read_csv("data/clean_data.csv", quotechar='"', skipinitialspace=True)
     food_cat = pd.read_csv("data/food_category.csv")
     protein = pd.read_csv("data/category_protein.csv")
 
     for df in [clean, food_cat, protein]:
-        df.columns = df.columns.str.strip().str.lower()
+        df.columns = df.columns.str.replace('"', '').str.strip().str.lower()
 
     clean["nama"] = clean["nama"].str.lower().str.strip()
     food_cat["nama"] = food_cat["nama"].str.lower().str.strip()
@@ -63,18 +51,17 @@ def load_data():
 
 clean_df, food_cat_df, protein_df = load_data()
 
-# konversi numerik
 NUM_COLS = ["energi_kkal", "protein_g", "karbo_g", "serat_g"]
+
 for col in NUM_COLS:
     clean_df[col] = (
-        clean_df[col].astype(str)
+        clean_df[col]
+        .astype(str)
         .str.replace(",", ".", regex=False)
+        .str.strip()
     )
     clean_df[col] = pd.to_numeric(clean_df[col], errors="coerce").fillna(0)
 
-# =========================
-# KATEGORI MENU
-# =========================
 def normalize_category(cat):
     if "pokok" in cat:
         return "Makanan Pokok"
@@ -98,23 +85,22 @@ for _, r in food_cat_df.iterrows():
     if cat:
         MENU_OPTIONS[cat].append(r["nama"])
 
-# =========================
-# UI DATA SISWA
-# =========================
+# data murid/siswa
 st.title("🍽️ AI Validasi Menu MBG")
-st.caption("Perhitungan berdasarkan data gizi riil")
+st.caption("Perhitungan REAL berdasarkan data gizi")
 
-c1, c2 = st.columns(2)
-with c1:
+st.subheader("👤 Informasi Siswa")
+col1, col2 = st.columns(2)
+
+with col1:
     jenjang = st.selectbox("Jenjang", ["SD", "SMP", "SMA"])
-with c2:
+
+with col2:
     kelas = st.selectbox("Kelas", [k for k in KELAS_MAP if k.startswith(jenjang)])
 
 std = MBG_STANDARD[KELAS_MAP[kelas]]
 
-# =========================
-# PILIH MENU
-# =========================
+# menu makanan
 st.subheader("🍴 Pilihan Menu")
 
 for category, options in MENU_OPTIONS.items():
@@ -129,49 +115,66 @@ for category, options in MENU_OPTIONS.items():
                     "portion": 100
                 })
 
-# =========================
-# INPUT PORSI
-# =========================
-st.subheader("⚖️ Porsi (gram)")
+# porsi input
+def group_menu_by_category(menu_items):
+    grouped = defaultdict(list)
+    for m in menu_items:
+        grouped[m["category"]].append(m)
+    return grouped
 
+
+def avg_nutrient_per_100g(df, names, col):
+    rows = df[df["nama"].isin(names)]
+    if rows.empty:
+        return 0
+    return rows[col].mean()
+
+st.subheader("⚖️ Porsi per Kategori")
+
+grouped_menu = defaultdict(list)
 for item in st.session_state.menu_items:
-    c1, c2 = st.columns([3, 1])
-    c1.write(f"{item['name']} ({item['category']})")
-    item["portion"] = c2.number_input(
-        "gram",
-        min_value=0,
-        step=10,
-        value=item["portion"],
-        key=item["id"]
-    )
+    grouped_menu[item["category"]].append(item)
 
-# =========================
-# VALIDASI
-# =========================
-if st.button("✅ Validasi Menu"):
-    energi = protein = karbo = serat = animal = 0
+for category, items in grouped_menu.items():
+    st.markdown(f"### 🍽️ {category}")
+
+    for item in items:
+        c1, c2 = st.columns([4, 1])
+        c1.write(item["name"])
+        item["portion"] = c2.number_input(
+            "gram",
+            min_value=0,
+            step=10,
+            value=item["portion"],
+            key=item["id"]
+        )
+
+
+# validasi
+if st.button("Validasi Menu"):
+    energi = protein = serat = karbo = animal_protein = 0
 
     for item in st.session_state.menu_items:
-        row = clean_df[clean_df["nama"] == item["name"]]
+        row = clean_df[clean_df["nama"] == item["name"].lower()]
         if row.empty:
             continue
 
         g = item["portion"] / 100
-        energi += row["energi_kkal"].iloc[0] * g
-        protein += row["protein_g"].iloc[0] * g
-        karbo += row["karbo_g"].iloc[0] * g
-        serat += row["serat_g"].iloc[0] * g
+        energi += float(row["energi_kkal"].values[0]) * g
+        protein += float(row["protein_g"].values[0]) * g
+        karbo += float(row["karbo_g"].values[0]) * g
+        serat += float(row["serat_g"].values[0]) * g
 
-        p = protein_df[protein_df["nama"] == item["name"]]
-        if not p.empty and p["is_animal"].iloc[0]:
-            animal += row["protein_g"].iloc[0] * g
+        p = protein_df[protein_df["nama"] == item["name"].lower()]
+        if not p.empty and p["is_animal"].values[0]:
+            animal_protein += row["protein_g"].values[0] * g
 
     status = (
         std["min_energy"] <= energi <= std["max_energy"]
         and protein >= std["min_protein"]
         and karbo >= std["min_carb"]
         and serat >= std["min_fiber"]
-        and animal >= std["min_animal"]
+        and animal_protein >= std["min_animal"]
     )
 
     st.session_state.result = {
@@ -179,71 +182,130 @@ if st.button("✅ Validasi Menu"):
         "protein": int(protein),
         "karbo": int(karbo),
         "serat": int(serat),
-        "animal": int(animal),
+        "animal": int(animal_protein),
         "status": status
     }
 
-    st.session_state.totals = {
-        "energi": energi,
-        "protein": protein,
-        "karbo": karbo,
-        "serat": serat,
-        "animal": animal
-    }
 
-# =========================
-# OUTPUT
-# =========================
+# output result
 if st.session_state.result:
-    r = st.session_state.result
-    t = st.session_state.totals
+    result = st.session_state.result
 
     st.subheader("📊 Hasil")
+
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Energi", f"{r['energi']} kkal")
-    c2.metric("Protein", f"{r['protein']} g")
-    c3.metric("Protein Hewani", f"{r['animal']} g")
-    c4.metric("Karbohidrat", f"{r['karbo']} g")
-    c5.metric("Serat", f"{r['serat']} g")
+    c1.metric("Energi", f"{result['energi']} kkal")
+    c2.metric("Protein", f"{result['protein']} g")
+    c3.metric("Protein Hewani", f"{result['animal']} g")
+    c4.metric("Karbohidrat", f"{result['karbo']} g")
+    c5.metric("Serat", f"{result['serat']} g")
 
-    st.success("✅ MENU SESUAI STANDAR MBG") if r["status"] else st.error("❌ MENU TIDAK SESUAI STANDAR MBG")
-
-    # =========================
-    # REKOMENDASI
-    # =========================
-    st.divider()
-    st.subheader("🧠 Rekomendasi Penyesuaian")
-
-    def avg_by_category(cat, col):
-        names = [m["name"] for m in st.session_state.menu_items if m["category"] == cat]
-        rows = clean_df[clean_df["nama"].isin(names)]
-        return rows[col].mean() if not rows.empty else 0
-
-    rekom = []
-
-    if t["karbo"] < std["min_carb"]:
-        avg = avg_by_category("Makanan Pokok", "karbo_g")
-        if avg:
-            gram = int(((std["min_carb"] - t["karbo"]) / avg) * 100)
-            rekom.append(f"➕ Tambahkan ±{gram} g makanan pokok")
-
-    if t["protein"] < std["min_protein"]:
-        avg = avg_by_category("Lauk Pauk", "protein_g")
-        if avg:
-            gram = int(((std["min_protein"] - t["protein"]) / avg) * 100)
-            rekom.append(f"➕ Tambahkan ±{gram} g lauk pauk")
-
-    if t["animal"] < std["min_animal"]:
-        rekom.append("➕ Tambahkan lauk protein hewani")
-
-    if t["serat"] < std["min_fiber"]:
-        avg = avg_by_category("Sayuran", "serat_g")
-        if avg:
-            gram = int(((std["min_fiber"] - t["serat"]) / avg) * 100)
-            rekom.append(f"➕ Tambahkan ±{gram} g sayuran")
-
-    if rekom:
-        for r in rekom:
-            st.info(r)
+    if result["status"]:
+        st.success("✅ MENU SESUAI STANDAR MBG")
     else:
-        st.success("✅ Tidak perlu penyesuaian menu")
+        st.error("❌ MENU TIDAK SESUAI STANDAR MBG")
+
+# rekomendasi penyesuaian
+    st.divider()
+    st.subheader("🧠 Rekomendasi Penyesuaian Menu")
+
+    rekomendasi = []
+
+    # Energi
+    if energi > std["max_energy"]:
+        rekomendasi.append("Kurangi porsi makanan pokok atau lauk tinggi lemak")
+    elif energi < std["min_energy"]:
+        rekomendasi.append("Tambahkan porsi makanan pokok")
+
+    # Karbohidrat
+    if karbo < std["min_carb"]:
+        if energi < std["max_energy"]:
+            rekomendasi.append("Tambahkan nasi / sumber karbohidrat")
+        else:
+            rekomendasi.append(
+                "Tambahkan karbohidrat rendah energi (kentang rebus / jagung)"
+            )
+
+    # Protein total
+    if protein < std["min_protein"]:
+        rekomendasi.append("Tambahkan lauk berprotein (ayam, ikan, telur)")
+
+    # Protein hewani
+    if animal_protein < std["min_animal"]:
+        rekomendasi.append("Tambahkan lauk protein hewani")
+
+    # Serat
+    if serat < std["min_fiber"]:
+        rekomendasi.append("Tambahkan sayuran hijau atau buah")
+
+
+    if rekomendasi:
+        st.subheader("🧠 Rekomendasi Penyesuaian Menu")
+        for r in rekomendasi:
+            st.info(r)
+st.divider()
+st.subheader("📋 Kebutuhan Nutrisi untuk Menu Valid")
+
+def status_label(value, min_val=None, max_val=None):
+    if min_val is not None and value < min_val:
+        return "❌ Kurang"
+    if max_val is not None and value > max_val:
+        return "⚠️ Berlebih"
+    return "✅ Cukup"
+
+data_table = [
+    {
+        "Nutrisi": "Energi (kkal)",
+        "Standar MBG": f"{std['min_energy']} – {std['max_energy']}",
+        "Menu Saat Ini": result["energi"],
+        "Selisih": (
+            result["energi"] - std["min_energy"]
+            if result["energi"] < std["min_energy"]
+            else result["energi"] - std["max_energy"]
+            if result["energi"] > std["max_energy"]
+            else 0
+        ),
+        "Status": status_label(
+            result["energi"],
+            std["min_energy"],
+            std["max_energy"]
+        ),
+    },
+    {
+        "Nutrisi": "Protein (g)",
+        "Standar MBG": f"≥ {std['min_protein']}",
+        "Menu Saat Ini": result["protein"],
+        "Selisih": result["protein"] - std["min_protein"],
+        "Status": status_label(result["protein"], std["min_protein"]),
+    },
+    {
+        "Nutrisi": "Protein Hewani (g)",
+        "Standar MBG": f"≥ {std['min_animal']}",
+        "Menu Saat Ini": result["animal"],
+        "Selisih": result["animal"] - std["min_animal"],
+        "Status": status_label(result["animal"], std["min_animal"]),
+    },
+    {
+        "Nutrisi": "Karbohidrat (g)",
+        "Standar MBG": f"≥ {std['min_carb']}",
+        "Menu Saat Ini": result["karbo"],
+        "Selisih": result["karbo"] - std["min_carb"],
+        "Status": status_label(result["karbo"], std["min_carb"]),
+    },
+    {
+        "Nutrisi": "Serat (g)",
+        "Standar MBG": f"≥ {std['min_fiber']}",
+        "Menu Saat Ini": result["serat"],
+        "Selisih": result["serat"] - std["min_fiber"],
+        "Status": status_label(result["serat"], std["min_fiber"]),
+    },
+]
+
+df_kebutuhan = pd.DataFrame(data_table)
+
+st.dataframe(
+    df_kebutuhan,
+    use_container_width=True,
+    hide_index=True
+)
+
