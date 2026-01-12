@@ -166,96 +166,82 @@ if st.button("Validasi Menu"):
 
 # output result
 if st.session_state.result:
-    r = st.session_state.result
+    result = st.session_state.result
+
     st.subheader("📊 Hasil")
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Energi", f"{r['energi']} kkal")
-    c2.metric("Protein", f"{r['protein']} g")
-    c3.metric("Protein Hewani", f"{r['animal']} g")
-    c4.metric("Karbohidrat", f"{r['karbo']} g")
-    c5.metric("Serat", f"{r['serat']} g")
+    c1.metric("Energi", f"{result['energi']} kkal")
+    c2.metric("Protein", f"{result['protein']} g")
+    c3.metric("Protein Hewani", f"{result['animal']} g")
+    c4.metric("Karbohidrat", f"{result['karbo']} g")
+    c5.metric("Serat", f"{result['serat']} g")
 
-    if r["status"]:
+    if result["status"]:
         st.success("✅ MENU SESUAI STANDAR MBG")
     else:
         st.error("❌ MENU TIDAK SESUAI STANDAR MBG")
 
-st.divider()
-st.subheader("🧠 Rekomendasi Penyesuaian Menu")
+# rekomendasi penyesuaian
+    st.divider()
+    st.subheader("🧠 Rekomendasi Penyesuaian Menu")
 
-rekomendasi = []
+    rekomendasi = []
 
-def best_food_from_selected(category, nutrient):
-    kandidat = []
-    for item in st.session_state.menu_items:
-        if item["category"] == category:
-            row = clean_df[clean_df["nama"] == item["name"]]
-            if not row.empty:
-                val = row[nutrient].values[0]
-                kandidat.append((item["name"], val))
-    kandidat.sort(key=lambda x: x[1], reverse=True)
-    return kandidat[0] if kandidat else None
+    def best_food_from_selected(category, nutrient):
+        kandidat = []
+        for item in st.session_state.menu_items:
+            if item["category"] == category:
+                row = clean_df[clean_df["nama"] == item["name"]]
+                if not row.empty:
+                    kandidat.append((item["name"], row[nutrient].values[0]))
+        kandidat.sort(key=lambda x: x[1], reverse=True)
+        return kandidat[0] if kandidat else None
 
+    # karbohidrat
+    if result["energi"] < std["min_energy"] or result["karbo"] < std["min_carb"]:
+        best = best_food_from_selected("Makanan Pokok", "energi_kkal")
+        if best:
+            rekomendasi.append(
+                f"➕ Tambahkan porsi **{best[0]}** untuk meningkatkan energi & karbohidrat"
+            )
+        else:
+            rekomendasi.append(
+                "➕ Disarankan menambahkan **makanan pokok** (nasi / kentang / roti)"
+            )
 
-# karbohidrat 
-if r["energi"] < std["min_energy"] or r["karbo"] < std["min_carb"]:
-    best = best_food_from_selected("Makanan Pokok", "energi_kkal")
-    if best:
+    # protein
+    if result["protein"] < std["min_protein"]:
+        best = best_food_from_selected("Lauk Pauk", "protein_g")
+        if best:
+            rekomendasi.append(
+                f"➕ Tambahkan porsi **{best[0]}** untuk meningkatkan protein"
+            )
+        else:
+            rekomendasi.append(
+                "➕ Disarankan menambahkan **lauk pauk berprotein**"
+            )
+
+    # protein hewani
+    if result["animal"] < std["min_animal"]:
         rekomendasi.append(
-            f"➕ Tambahkan porsi **{best[0]}** (makanan pokok) untuk meningkatkan energi & karbohidrat"
+            "➕ Tambahkan **lauk protein hewani** (ayam / ikan / telur)"
         )
+
+    # serat
+    if result["serat"] < std["min_fiber"]:
+        best = best_food_from_selected("Sayuran", "serat_g")
+        if best:
+            rekomendasi.append(
+                f"➕ Tambahkan porsi **{best[0]}** untuk meningkatkan serat"
+            )
+        else:
+            rekomendasi.append(
+                "➕ Disarankan menambahkan **sayuran**"
+            )
+
+    if rekomendasi:
+        for rec in rekomendasi:
+            st.info(rec)
     else:
-        rekomendasi.append(
-            "➕ Disarankan menambahkan **makanan pokok** (nasi / roti / kentang)"
-        )
-
-
-# protein total
-if r["protein"] < std["min_protein"]:
-    best = best_food_from_selected("Lauk Pauk", "protein_g")
-    if best:
-        rekomendasi.append(
-            f"➕ Tambahkan porsi **{best[0]}** (lauk pauk) untuk memenuhi kebutuhan protein"
-        )
-    else:
-        rekomendasi.append(
-            "➕ Disarankan menambahkan **lauk pauk berprotein** (ayam / telur / tempe / tahu)"
-        )
-
-# protein
-if r["animal"] < std["min_animal"]:
-    hewani = []
-    for item in st.session_state.menu_items:
-        p = protein_df[protein_df["nama"] == item["name"]]
-        if not p.empty and p["is_animal"].values[0]:
-            hewani.append(item["name"])
-
-    if hewani:
-        rekomendasi.append(
-            f"➕ Tambahkan porsi **{hewani[0]}** untuk memenuhi protein hewani"
-        )
-    else:
-        rekomendasi.append(
-            "➕ Disarankan menambahkan **lauk protein hewani** (ayam / ikan / telur)"
-        )
-
-# serat
-if r["serat"] < std["min_fiber"]:
-    best = best_food_from_selected("Sayuran", "serat_g")
-    if best:
-        rekomendasi.append(
-            f"➕ Tambahkan porsi **{best[0]}** (sayuran) untuk meningkatkan asupan serat"
-        )
-    else:
-        rekomendasi.append(
-            "➕ Disarankan menambahkan **sayuran** (bayam / wortel / kangkung)"
-        )
-
-
-# display rekomendasi
-if rekomendasi:
-    for rec in rekomendasi:
-        st.info(rec)
-else:
-    st.success("🎯 Menu sudah seimbang dan memenuhi standar MBG")
+        st.success("🎯 Menu sudah seimbang dan memenuhi standar MBG")
