@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import uuid
-import time
 
 # ===============================
 # PAGE CONFIG
@@ -65,19 +64,32 @@ clean_df, food_cat_df, protein_df = load_data()
 # ===============================
 # BUILD MENU BY CATEGORY
 # ===============================
-CATEGORY_MAP = {
-    "Pokok": "Makanan Pokok",
-    "Lauk": "Lauk Pauk",
-    "Sayur": "Sayuran",
-    "Buah": "Buah"
+
+def normalize_category(cat):
+    if "pokok" in cat:
+        return "Makanan Pokok"
+    if "lauk" in cat:
+        return "Lauk Pauk"
+    if "sayur" in cat:
+        return "Sayuran"
+    if "buah" in cat:
+        return "Buah"
+    return None
+
+# ===============================
+# BUILD MENU OPTIONS
+# ===============================
+MENU_OPTIONS = {
+    "Makanan Pokok": [],
+    "Lauk Pauk": [],
+    "Sayuran": [],
+    "Buah": []
 }
 
-MENU_OPTIONS = {v: [] for v in CATEGORY_MAP.values()}
-
 for _, r in food_cat_df.iterrows():
-    cat = r["kategori"].lower()
-    if cat in CATEGORY_MAP:
-        MENU_OPTIONS[CATEGORY_MAP[cat]].append(r["nama bahan"])
+    cat = normalize_category(r["kategori"])
+    if cat:
+        MENU_OPTIONS[cat].append(r["nama bahan"])
 
 # ===============================
 # UI HEADER
@@ -95,13 +107,9 @@ with col1:
     jenjang = st.selectbox("Jenjang", ["SD", "SMP", "SMA"])
 
 with col2:
-    kelas = st.selectbox(
-        "Kelas",
-        [k for k in KELAS_MAP if k.startswith(jenjang)]
-    )
+    kelas = st.selectbox("Kelas", [k for k in KELAS_MAP if k.startswith(jenjang)])
 
-group_id = KELAS_MAP[kelas]
-std = MBG_STANDARD[group_id]
+std = MBG_STANDARD[KELAS_MAP[kelas]]
 
 # ===============================
 # MENU SELECTION
