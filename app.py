@@ -54,7 +54,8 @@ def load_data():
         df.columns = df.columns.str.replace('"', '').str.strip().str.lower()
 
     clean["nama"] = clean["nama"].str.lower().str.strip()
-    food_cat["nama bahan"] = food_cat["nama bahan"].str.lower().str.strip()
+    food_cat["nama"] = food_cat["nama"].str.lower().str.strip()
+    food_cat["kategori"] = food_cat["kategori"].str.lower().str.strip()
     protein["nama"] = protein["nama"].str.lower().str.strip()
 
     return clean, food_cat, protein
@@ -89,7 +90,7 @@ MENU_OPTIONS = {
 for _, r in food_cat_df.iterrows():
     cat = normalize_category(r["kategori"])
     if cat:
-        MENU_OPTIONS[cat].append(r["nama bahan"])
+        MENU_OPTIONS[cat].append(r["nama"])
 
 # ===============================
 # UI HEADER
