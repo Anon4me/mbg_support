@@ -5,6 +5,9 @@ import uuid
 
 st.set_page_config(page_title="AI Validasi Menu MBG", layout="wide")
 
+# ===============================
+# SESSION STATE
+# ===============================
 if "student_info" not in st.session_state:
     st.session_state.student_info = {"jenjang": "", "kelas": ""}
 
@@ -17,9 +20,9 @@ if "validated" not in st.session_state:
 if "result" not in st.session_state:
     st.session_state.result = None
 
-if "logbook" not in st.session_state:
-    st.session_state.logbook = []
-
+# ===============================
+# CONSTANTS (UI TIDAK DIUBAH)
+# ===============================
 KELAS_OPTIONS = {
     "SD": [
         "SD Kelas I", "SD Kelas II", "SD Kelas III",
@@ -52,33 +55,47 @@ MENU_CATEGORIES = {
     ]
 }
 
+# ===============================
+# DATA LOADER (FIXED)
+# ===============================
 @st.cache_data
 def load_standar():
-    df = pd.read_csv("data/standar_mbg.csv")
-    df.columns = [c.strip().lower() for c in df.columns]
+    df = pd.read_csv("data/mbg_standar.csv", sep=";")
     return df
 
+# ===============================
+# MBG LOGIC (FIXED TOTAL)
+# ===============================
 def resolve_group_id(jenjang, kelas):
     if jenjang == "SD":
-        if "I" in kelas or "II" in kelas or "III" in kelas:
-            return "sd_awal"
-        return "sd_tinggi"
+        if any(k in kelas for k in ["I", "II", "III"]):
+            return "SD_AWAL"
+        return "SD_TINGGI"
     if jenjang == "SMP":
-        return "smp"
+        return "SMP"
     if jenjang == "SMA":
-        return "sma"
-    raise ValueError("Group tidak valid")
+        return "SMA"
+    raise ValueError("Group MBG tidak valid")
+
 
 def get_mbg_standard(jenjang, kelas, std_df):
     gid = resolve_group_id(jenjang, kelas)
     row = std_df[std_df["group_id"] == gid]
+
     if row.empty:
-        raise ValueError("Standar MBG tidak ditemukan")
+        raise ValueError(f"Standar MBG tidak ditemukan untuk {gid}")
+
     return row.iloc[0]
 
+# ===============================
+# UI HEADER
+# ===============================
 st.title("🍽️ AI Validasi Menu MBG")
 st.caption("Validasi otomatis menu sesuai standar gizi MBG")
 
+# ===============================
+# INFORMASI SISWA (DESIGN ASLI)
+# ===============================
 st.subheader("👤 Informasi Siswa")
 
 info = st.session_state.student_info
@@ -88,7 +105,7 @@ with col1:
     jenjang = st.selectbox(
         "Jenjang Pendidikan",
         ["", "SD", "SMP", "SMA"],
-        index=["", "SD", "SMP", "SMA"].index(info["jenjang"]) if info["jenjang"] in ["SD", "SMP", "SMA"] else 0
+        index=["", "SD", "SMP", "SMA"].index(info["jenjang"]) if info["jenjang"] else 0
     )
 
 if jenjang != info["jenjang"]:
@@ -98,17 +115,28 @@ if jenjang != info["jenjang"]:
 with col2:
     kelas = st.selectbox(
         "Kelas",
-        ["Pilih Jenjang Terlebih Dahulu"] if not info["jenjang"] else [""] + KELAS_OPTIONS[info["jenjang"]],
+        ["Pilih Jenjang Terlebih Dahulu"]
+        if not info["jenjang"]
+        else [""] + KELAS_OPTIONS[info["jenjang"]],
         disabled=not info["jenjang"]
     )
+
     if kelas and kelas != "Pilih Jenjang Terlebih Dahulu":
         info["kelas"] = kelas
 
+# ===============================
+# MENU SELECTION (DESIGN ASLI)
+# ===============================
 st.subheader("🍴 Pilihan Menu Makanan")
 
 for category, options in MENU_CATEGORIES.items():
     with st.expander(category):
-        selected = st.multiselect(f"Pilih {category}", options, key=f"menu_{category}")
+        selected = st.multiselect(
+            f"Pilih {category}",
+            options,
+            key=f"menu_{category}"
+        )
+
         for item in selected:
             if not any(m["name"] == item for m in st.session_state.menu_items):
                 st.session_state.menu_items.append({
@@ -119,6 +147,9 @@ for category, options in MENU_CATEGORIES.items():
                     "custom": False
                 })
 
+# ===============================
+# PORTION CONTROL (DESIGN ASLI)
+# ===============================
 st.subheader("⚖️ Kontrol Porsi")
 
 if not st.session_state.menu_items:
@@ -127,7 +158,11 @@ else:
     for item in st.session_state.menu_items:
         c1, c2, c3 = st.columns([3, 1, 1])
         c1.markdown(f"**{item['name']}**")
-        item["custom"] = c2.checkbox("Porsi Bebas", item["custom"], key=f"c_{item['id']}")
+        item["custom"] = c2.checkbox(
+            "Porsi Bebas",
+            item["custom"],
+            key=f"c_{item['id']}"
+        )
         item["portion"] = c3.number_input(
             "gram",
             min_value=0,
@@ -137,9 +172,12 @@ else:
             key=f"p_{item['id']}"
         )
 
+# ===============================
+# VALIDATION (DESIGN ASLI)
+# ===============================
 st.subheader("✨ AI Validasi Menu")
 
-can_validate = info["jenjang"] and info["kelas"] and len(st.session_state.menu_items) > 0
+can_validate = info["jenjang"] and info["kelas"] and st.session_state.menu_items
 
 if st.button("Validasi Menu", disabled=not can_validate):
     with st.spinner("Memproses menu dengan AI..."):
@@ -176,15 +214,18 @@ if st.button("Validasi Menu", disabled=not can_validate):
         "protein": int(protein),
         "karbohidrat": int(karbo),
         "serat": int(serat),
-        "status": status,
-        "message": "Menu memenuhi standar MBG" if status == "sesuai" else "Menu tidak memenuhi standar MBG"
+        "status": status
     }
 
     st.session_state.validated = True
 
+# ===============================
+# OUTPUT (DESIGN ASLI)
+# ===============================
 if st.session_state.validated:
     st.subheader("📊 Output Laporan Gizi")
     r = st.session_state.result
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Energi", f"{r['energi']} kkal")
     c2.metric("Protein", f"{r['protein']} g")
